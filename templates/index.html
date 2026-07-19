@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор DOCX</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; cursor: pointer; width: 100%; border-radius: 3px; font-size: 16px; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #download-section { margin-top: 20px; display: none; padding: 15px; background-color: #e9ecef; text-align: center; border-radius: 5px; }
+        #download-btn { background-color: #28a745; text-decoration: none; padding: 10px 15px; color: white; display: inline-block; border-radius: 3px;}
+
+        /* Стилі для картинки в кутку */
+        .corner-logo {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 16.6vw;       /* ~1/6 ширини екрану */
+            height: 25vh;        /* ~1/4 висоти екрану */
+            object-fit: contain; /* Зберігає пропорції картинки, щоб не сплющувалась */
+            z-index: -1;         /* Ховаємо на задній фон */
+            opacity: 0.8;        /* Трохи прозорості (1 = повністю непрозора) */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Наша картинка зі шляхом до папки static -->
+    <img src="/static/logo.png" alt="Logo" class="corner-logo">
+
+    <h2>Заповнення документу</h2>
+
+    <form id="doc-form">
+        <div class="form-group">
+            <label>DOCX Файл:</label>
+            <input type="file" id="file" name="file" accept=".docx" required>
+        </div>
+        <div class="form-group"><label>Стандартна ставка:</label><input type="text" name="standard_rate"></div>
+        <div class="form-group"><label>Знижена ставка:</label><input type="text" name="reduced_rate"></div>
+        <div class="form-group"><label>Промо ставка:</label><input type="text" name="promo_rate"></div>
+        <div class="form-group"><label>Пільгова ставка:</label><input type="text" name="preferential_rate"></div>
+        <div class="form-group"><label>Комісія за видачу:</label><input type="text" name="fee"></div>
+        <div class="form-group"><label>ОТР пароль:</label><input type="text" name="otp"></div>
+
+        <button type="submit" id="submit-btn">Обробити файл</button>
+    </form>
+
+    <div id="download-section">
+        <p>✅ Файл успішно оброблено!</p>
+        <a href="#" id="download-btn">Завантажити готовий документ</a>
+    </div>
+
+    <script>
+        document.getElementById('doc-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const form = e.target;
+            const submitBtn = document.getElementById('submit-btn');
+            const downloadSection = document.getElementById('download-section');
+            const downloadBtn = document.getElementById('download-btn');
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Обробка...';
+            downloadSection.style.display = 'none';
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    downloadBtn.href = `/download/${result.file_id}`;
+                    downloadSection.style.display = 'block';
+                } else {
+                    alert('Помилка: ' + result.error);
+                }
+            } catch (error) {
+                alert('Сталася помилка з\'єднання');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Обробити файл';
+            }
+        });
+
+        document.getElementById('download-btn').addEventListener('click', () => {
+            setTimeout(() => {
+                document.getElementById('download-section').style.display = 'none';
+                document.getElementById('doc-form').reset();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
