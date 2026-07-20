@@ -9,7 +9,7 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Ініціалізуємо Gemini. Ключ буде братися зі змінних середовища Render
+# Ініціалізуємо Gemini. Встав свій ключ або використовуй змінну середовища
 API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCLRorwQCbCFEVXZr3YzajlX8OM9zdiAU4")
 if API_KEY:
     genai.configure(api_key=API_KEY)
@@ -22,7 +22,7 @@ def get_rate_in_words(rate_val):
     try:
         model = genai.GenerativeModel('gemini-3.1-flash-lite')
 
-        # Примусово форматуємо число до вигляду з двома знаками після крапки (наприклад "2" -> "2.00")
+        # Примусово форматуємо число до вигляду з двома знаками після крапки
         try:
             formatted_val = f"{float(str(rate_val).replace(',', '.')):.2f}"
         except ValueError:
@@ -53,6 +53,13 @@ def get_rate_in_words(rate_val):
         return "помилка генерації тексту"
 
 
+# ================= МАРШРУТИ FLASK =================
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
 @app.route('/process', methods=['POST'])
 def process():
     if 'file' not in request.files:
@@ -62,20 +69,19 @@ def process():
     if file.filename == '':
         return jsonify({"error": "Файл не обрано"}), 400
 
+    # Зберігаємо оригінальне ім'я файлу
+    original_filename = file.filename
+
     raw_rate_181 = request.form.get("rate_181", "").strip()
     rate_181 = raw_rate_181
     rate_181_words = ""
-
     if raw_rate_181:
-        # Нормалізуємо для самого docx документа (щоб замість "2" в шаблон пішло "2.00")
         try:
             rate_181 = f"{float(raw_rate_181.replace(',', '.')):.2f}"
         except ValueError:
             pass
-
         rate_181_words = get_rate_in_words(raw_rate_181)
 
-    # Те саме робимо для стандартної ставки, щоб у текст йшло "2.00" замість "2"
     raw_std = request.form.get("standard_rate", "").strip()
     standard_rate = raw_std
     if raw_std:
@@ -107,7 +113,8 @@ def process():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    return jsonify({"status": "success", "file_id": file_id})
+    # Повертаємо оригінальне ім'я на фронтенд
+    return jsonify({"status": "success", "file_id": file_id, "filename": original_filename})
 
 
 @app.route('/download/<file_id>')
@@ -116,7 +123,7 @@ def download(file_id):
     mod_path = os.path.join(UPLOAD_FOLDER, f"mod_{file_id}.docx")
 
     if not os.path.exists(mod_path):
-        return "Файл не знайдено", 404
+        return "Файл не знайдено або вже видалено", 404
 
     return_data = BytesIO()
     with open(mod_path, 'rb') as fo:
@@ -126,8 +133,15 @@ def download(file_id):
     if os.path.exists(base_path): os.remove(base_path)
     if os.path.exists(mod_path): os.remove(mod_path)
 
-    return send_file(return_data, mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                     as_attachment=True, download_name='ready_contract.docx')
+    # Отримуємо ім'я файлу з параметрів запиту
+    download_name = request.args.get('name', 'ready_contract.docx')
+
+    return send_file(
+        return_data,
+        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        as_attachment=True,
+        download_name=download_name
+    )
 
 
 if __name__ == '__main__':
