@@ -14,22 +14,11 @@
         #download-section { margin-top: 20px; display: none; padding: 15px; background-color: #e9ecef; text-align: center; border-radius: 5px; }
         #download-btn { background-color: #28a745; text-decoration: none; padding: 10px 15px; color: white; display: inline-block; border-radius: 3px;}
 
-        /* Стилі для картинки в кутку */
-        .corner-logo {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 16.6vw;       /* ~1/6 ширини екрану */
-            height: 25vh;        /* ~1/4 висоти екрану */
-            object-fit: contain; /* Зберігає пропорції картинки, щоб не сплющувалась */
-            z-index: -1;         /* Ховаємо на задній фон */
-            opacity: 0.8;        /* Трохи прозорості (1 = повністю непрозора) */
-        }
+        .corner-logo { position: fixed; bottom: 20px; right: 20px; width: 16.6vw; height: 25vh; object-fit: contain; z-index: -1; opacity: 0.8; }
     </style>
 </head>
 <body>
 
-    <!-- Наша картинка зі шляхом до папки static -->
     <img src="/static/logo.png" alt="Logo" class="corner-logo">
 
     <h2>Заповнення документу</h2>
@@ -40,6 +29,10 @@
             <input type="file" id="file" name="file" accept=".docx" required>
         </div>
         <div class="form-group"><label>Стандартна ставка:</label><input type="text" name="standard_rate"></div>
+
+        <!-- НОВЕ ПОЛЕ ТУТ -->
+        <div class="form-group"><label>Ставка після 181 дня:</label><input type="text" name="rate_181"></div>
+
         <div class="form-group"><label>Знижена ставка:</label><input type="text" name="reduced_rate"></div>
         <div class="form-group"><label>Промо ставка:</label><input type="text" name="promo_rate"></div>
         <div class="form-group"><label>Пільгова ставка:</label><input type="text" name="preferential_rate"></div>
@@ -58,27 +51,23 @@
         document.getElementById('doc-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const form = e.target;
             const submitBtn = document.getElementById('submit-btn');
             const downloadSection = document.getElementById('download-section');
             const downloadBtn = document.getElementById('download-btn');
 
             submitBtn.disabled = true;
-            submitBtn.innerText = 'Обробка...';
+            submitBtn.innerText = 'Генеруємо розпис ставки... (це може зайняти пару секунд)';
             downloadSection.style.display = 'none';
 
-            const formData = new FormData(form);
+            const formData = new FormData(e.target);
 
             try {
-                const response = await fetch('/process', {
-                    method: 'POST',
-                    body: formData
-                });
-
+                const response = await fetch('/process', { method: 'POST', body: formData });
                 const result = await response.json();
 
                 if (response.ok) {
-                    downloadBtn.href = `/download/${result.file_id}`;
+                    // Передаємо ім'я файлу в URL для завантаження
+                    downloadBtn.href = `/download/${result.file_id}?name=${encodeURIComponent(result.filename)}`;
                     downloadSection.style.display = 'block';
                 } else {
                     alert('Помилка: ' + result.error);
