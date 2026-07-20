@@ -10,7 +10,6 @@ UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Ініціалізуємо Gemini. Встав свій ключ або використовуй змінну середовища
-API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCLRorwQCbCFEVXZr3YzajlX8OM9zdiAU4")
 if API_KEY:
     genai.configure(api_key=API_KEY)
 
