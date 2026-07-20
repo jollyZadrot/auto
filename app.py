@@ -8,7 +8,7 @@ from docx_handler import DocxHandler
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
+API_KEY = os.environ.get("GEMINI_API_KEY", "")
 # Ініціалізуємо Gemini. Встав свій ключ або використовуй змінну середовища
 if API_KEY:
     genai.configure(api_key=API_KEY)
